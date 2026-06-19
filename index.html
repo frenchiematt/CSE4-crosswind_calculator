@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CSE4 Cockpit Wind Solver</title>
+    <!-- Configures the page to open like a native app on iOS & Android -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 15px; padding-top: env(safe-area-inset-top); text-align: center; }
+        .container { max-width: 400px; margin: 0 auto; }
+        h2 { color: #38bdf8; font-size: 20px; margin-vertical: 10px; letter-spacing: 0.5px; }
+        .input-card { background: #1e293b; padding: 15px; border-radius: 12px; border: 1px solid #334155; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        label { display: block; font-size: 11px; text-transform: uppercase; font-weight: bold; color: #94a3b8; margin-bottom: 4px; text-align: left; }
+        input { width: 100%; background: #0f172a; border: 1px solid #475569; color: #fff; padding: 12px; font-size: 18px; border-radius: 8px; box-sizing: border-box; font-weight: bold; text-align: center; }
+        input:focus { border-color: #38bdf8; outline: none; }
+        .btn-link { display: block; background: #0284c7; color: #fff; text-decoration: none; padding: 8px; border-radius: 6px; font-size: 12px; font-weight: bold; margin-bottom: 15px; border: 1px solid #0369a1; }
+        .rwy-box { background: #1e293b; border-radius: 12px; padding: 15px; margin-bottom: 12px; text-align: left; border-left: 5px solid #475569; position: relative; }
+        .recommended { border-left-color: #22c55e; background: #064e3b; }
+        .rwy-title { font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; }
+        .badge { background: #22c55e; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; vertical-align: middle; }
+        .metrics { margin-top: 8px; font-size: 15px; line-height: 1.4; }
+        .hw { color: #4ade80; }
+        .tw { color: #f87171; }
+        .xw { color: #fb923c; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>✈️ CSE4 RUNWAY SOLVER</h2>
+        
+        <!-- Quick navigation link to check the live dashboard -->
+        <a href="https://tempestwx.com" target="_blank" class="btn-link">👉 OPEN LIVE TEMPEST DASHBOARD</a>
+
+        <div class="input-card">
+            <div class="grid">
+                <div>
+                    <label>Wind Speed</label>
+                    <input type="number" id="speed" value="12" inputmode="decimal" oninput="calculate()">
+                </div>
+                <div>
+                    <label>Direction (&deg;)</label>
+                    <input type="number" id="dir" value="6" inputmode="numeric" oninput="calculate()">
+                </div>
+            </div>
+        </div>
+
+        <div id="rwy28" class="rwy-box">
+            <div class="rwy-title">RUNWAY 28 <span id="b28" class="badge" style="display:none;">RECOMMENDED</span></div>
+            <div class="metrics" id="m28"></div>
+        </div>
+
+        <div id="rwy10" class="rwy-box">
+            <div class="rwy-title">RUNWAY 10 <span id="b10" class="badge" style="display:none;">RECOMMENDED</span></div>
+            <div class="metrics" id="m10"></div>
+        </div>
+    </div>
+
+    <script>
+        function calculate() {
+            const speed = parseFloat(document.getElementById('speed').value) || 0;
+            const windDir = parseInt(document.getElementById('dir').value) || 0;
+            
+            const r28H = 281, r10H = 101;
+            
+            function getValues(heading) {
+                let rad = (windDir - heading) * (Math.PI / 180);
+                return {
+                    hw: speed * Math.cos(rad),
+                    xw: Math.abs(speed * Math.sin(rad))
+                };
+            }
+
+            const d28 = getValues(r28H);
+            const d10 = getValues(r10H);
+            const use28 = d28.hw >= d10.hw;
+
+            function updateUI(id, data, isAlt) {
+                const box = document.getElementById('rwy' + id);
+                const badge = document.getElementById('b' + id);
+                const metrics = document.getElementById('m' + id);
+                
+                if (isAlt) {
+                    box.className = "rwy-box recommended";
+                    badge.style.display = "inline";
+                } else {
+                    box.className = "rwy-box";
+                    badge.style.display = "none";
+                }
+
+                const windText = data.hw >= 0 
+                    ? `<span class="hw">Headwind: <b>${data.hw.toFixed(1)}</b></span>` 
+                    : `<span class="tw">Tailwind: <b>${Math.abs(data.hw).toFixed(1)}</b></span>`;
+                
+                metrics.innerHTML = `${windText}<br>Crosswind Component: <span class="xw">${data.xw.toFixed(1)}</span>`;
+            }
+
+            updateUI('28', d28, use28);
+            updateUI('10', d10, !use28);
+        }
+        calculate();
+    </script>
+</body>
+</html>
